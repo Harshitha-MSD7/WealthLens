@@ -69,12 +69,16 @@ class RAGService:
 
         from langchain_openai import OpenAIEmbeddings
         from langchain_community.vectorstores import Chroma
+        import chromadb
 
         embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+
+        # Use in-memory client to avoid sqlite3 version issues on cloud
+        chroma_client = chromadb.Client()
         self._vectorstore = Chroma(
+            client=chroma_client,
             collection_name="wealthlens",
             embedding_function=embeddings,
-            persist_directory=CHROMA_PERSIST_DIR,
         )
         return self._vectorstore
 
