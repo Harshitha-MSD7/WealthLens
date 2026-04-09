@@ -522,7 +522,8 @@
             <div class="section-icon icon-gold">📄</div>
             Document Intelligence Engine
           </div>
-          <button class="section-action">+ Upload</button>
+          <button class="section-action" id="uploadBtn" onclick="triggerUpload()">+ Upload</button>
+          <input type="file" id="uploadInput" accept=".pdf,.txt,.csv,.xlsx" style="display:none" onchange="handleUploadInput(this)"/>
         </div>
 
         <!-- Document List -->
@@ -1339,6 +1340,19 @@ async function uploadFile(file) {
   } catch {
     zone.querySelector('h3').textContent = 'Upload failed — is the backend running?';
   }
+}
+
+/* ════════════════════════════════════════════
+   UPLOAD BUTTON
+════════════════════════════════════════════ */
+function triggerUpload() {
+  document.getElementById('uploadInput').click();
+}
+
+async function handleUploadInput(input) {
+  if (!input.files[0]) return;
+  await uploadFile(input.files[0]);
+  input.value = ''; // reset so same file can be re-uploaded
 }
 
 /* ════════════════════════════════════════════
