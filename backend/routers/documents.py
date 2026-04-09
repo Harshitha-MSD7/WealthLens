@@ -34,13 +34,16 @@ async def upload_document(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, f)
 
     try:
+        print(f"[UPLOAD] Starting ingest for {file.filename}", flush=True)
         chunk_count = rag.ingest(dest, file.filename)
+        print(f"[UPLOAD] Success: {chunk_count} chunks", flush=True)
     except Exception as e:
         tb = traceback.format_exc()
-        logger.error(f"Ingestion failed for {file.filename}:\n{tb}")
+        print(f"[UPLOAD ERROR] {str(e)}", flush=True)
+        print(f"[UPLOAD TRACEBACK]\n{tb}", flush=True)
         if os.path.exists(dest):
             os.remove(dest)
-        raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)} | Traceback: {tb}")
+        raise HTTPException(status_code=500, detail=f"{str(e)}")
 
     return {
         "filename": file.filename,
