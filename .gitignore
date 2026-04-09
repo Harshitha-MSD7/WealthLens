@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Secrets
+backend/.env
+*.env
+
+# Vector store (large binary files)
+backend/chroma_db/
+
+# Uploaded documents
+backend/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
