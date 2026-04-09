@@ -2,8 +2,13 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
 import os
 import shutil
+import logging
+import traceback
 
 from services.rag_service import RAGService
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 rag = RAGService()
@@ -31,8 +36,11 @@ async def upload_document(file: UploadFile = File(...)):
     try:
         chunk_count = rag.ingest(dest, file.filename)
     except Exception as e:
-        os.remove(dest)
-        raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)}")
+        tb = traceback.format_exc()
+        logger.error(f"Ingestion failed for {file.filename}:\n{tb}")
+        if os.path.exists(dest):
+            os.remove(dest)
+        raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)} | Traceback: {tb}")
 
     return {
         "filename": file.filename,
