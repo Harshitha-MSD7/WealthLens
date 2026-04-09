@@ -1327,18 +1327,30 @@ document.querySelectorAll('.upload-zone').forEach(zone => {
 });
 
 async function uploadFile(file) {
-  const zone = document.querySelector('.upload-zone');
-  zone.querySelector('h3').textContent = `Uploading ${file.name}…`;
+  const btn = document.getElementById('uploadBtn');
+  const original = btn.textContent;
+  btn.textContent = `Uploading…`;
+  btn.style.opacity = '0.6';
   const form = new FormData();
   form.append('file', file);
   try {
     const res  = await fetch(`${API}/documents/upload`, { method:'POST', body: form });
     const data = await res.json();
-    zone.querySelector('h3').textContent = `✓ ${data.filename} indexed (${data.chunks} chunks)`;
+    btn.textContent = `✓ Indexed!`;
+    btn.style.background = 'rgba(16,185,129,.2)';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => {
+      btn.textContent = original;
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.opacity = '';
+    }, 3000);
     const docs = await apiFetch('/documents/list');
     if (docs) renderDocList(docs);
   } catch {
-    zone.querySelector('h3').textContent = 'Upload failed — is the backend running?';
+    btn.textContent = 'Upload failed';
+    btn.style.color = 'var(--red)';
+    setTimeout(() => { btn.textContent = original; btn.style.color = ''; btn.style.opacity = ''; }, 3000);
   }
 }
 
