@@ -13,9 +13,9 @@ chromadb==0.5.0
 pypdf==4.2.0
 tiktoken==0.7.0
 
-# Data / Risk — versions with pre-built wheels for Python 3.11+
-numpy==2.0.0
-scipy==1.14.0
+# Data / Risk — pre-built wheels for Python 3.11, compatible with langchain<2
+numpy==1.26.4
+scipy==1.13.1
 pandas==2.2.2
 
 # Sentiment
