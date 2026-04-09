@@ -782,7 +782,10 @@
 /* ════════════════════════════════════════════
    CONFIG — point to FastAPI backend
 ════════════════════════════════════════════ */
-const API = 'http://localhost:8000/api';
+// Auto-switch: localhost for local dev, Render URL for GitHub Pages
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000/api'
+  : 'https://wealthlens-api.onrender.com/api';
 
 /* ════════════════════════════════════════════
    CHART INSTANCES (kept for updates)
