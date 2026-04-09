@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WealthLens — Financial Document Intelligence</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:       #040d1a;
+      --surface:  #071428;
+      --card:     #0b1f3a;
+      --border:   #142d52;
+      --border2:  #1e3f6e;
+      --gold:     #f0b429;
+      --gold2:    #fcd34d;
+      --cyan:     #22d3ee;
+      --green:    #10b981;
+      --red:      #f43f5e;
+      --blue:     #3b82f6;
+      --purple:   #a855f7;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --muted2:   #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── animated star bg ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(240,180,41,.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 90%, rgba(34,211,238,.05) 0%, transparent 55%);
+      z-index: 0; pointer-events: none;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(240,180,41,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(240,180,41,.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      z-index: 0; pointer-events: none;
+    }
+
+    .app { position: relative; z-index: 1; }
+
+    /* ═══════════════════ HEADER ═══════════════════ */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 40px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(4,13,26,.85);
+      backdrop-filter: blur(20px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--gold), #b45309);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 800; color: var(--bg);
+      box-shadow: 0 0 20px rgba(240,180,41,.4);
+    }
+    .logo-text { display: flex; flex-direction: column; }
+    .logo-name { font-size: 1.15rem; font-weight: 700; color: var(--gold); letter-spacing: -.3px; }
+    .logo-sub  { font-size: .65rem; font-weight: 400; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; }
+
+    nav { display: flex; gap: 6px; }
+    .nav-btn {
+      padding: 8px 16px; border: none; border-radius: 8px;
+      background: transparent; color: var(--muted2);
+      font-family: 'Inter', sans-serif; font-size: .82rem; font-weight: 500;
+      cursor: pointer; transition: all .2s;
+    }
+    .nav-btn:hover, .nav-btn.active {
+      background: rgba(240,180,41,.12); color: var(--gold);
+    }
+
+    .header-right { display: flex; align-items: center; gap: 14px; }
+    .badge {
+      padding: 5px 12px; border-radius: 20px;
+      font-size: .72rem; font-weight: 600; letter-spacing: .4px;
+    }
+    .badge-live { background: rgba(16,185,129,.15); color: var(--green); border: 1px solid rgba(16,185,129,.3); }
+    .user-av {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), var(--cyan));
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; font-weight: 700; color: var(--bg); cursor: pointer;
+    }
+
+    /* ═══════════════════ MAIN LAYOUT ═══════════════════ */
+    main { padding: 32px 40px; max-width: 1440px; margin: 0 auto; }
+
+    /* ── page title ── */
+    .page-title { margin-bottom: 28px; }
+    .page-title h1 { font-size: 1.55rem; font-weight: 700; color: var(--text); }
+    .page-title p { font-size: .85rem; color: var(--muted2); margin-top: 4px; }
+
+    /* ── grid helpers ── */
+    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 18px; }
+    .grid-doc { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; }
+
+    .mb-18 { margin-bottom: 18px; }
+    .mb-28 { margin-bottom: 28px; }
+
+    /* ═══════════════════ KPI CARDS ═══════════════════ */
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 24px;
+      transition: border-color .25s, transform .25s;
+      position: relative; overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    }
+    .kpi-card.gold::before  { background: linear-gradient(90deg, var(--gold), transparent); }
+    .kpi-card.cyan::before  { background: linear-gradient(90deg, var(--cyan), transparent); }
+    .kpi-card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
+    .kpi-card.red::before   { background: linear-gradient(90deg, var(--red), transparent); }
+    .kpi-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+
+    .kpi-label { font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+    .kpi-value { font-size: 1.7rem; font-weight: 700; line-height: 1; margin-bottom: 8px; }
+    .kpi-card.gold  .kpi-value { color: var(--gold); }
+    .kpi-card.cyan  .kpi-value { color: var(--cyan); }
+    .kpi-card.green .kpi-value { color: var(--green); }
+    .kpi-card.red   .kpi-value { color: var(--red); }
+
+    .kpi-delta {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: .75rem; font-weight: 600;
+      padding: 3px 8px; border-radius: 6px;
+    }
+    .kpi-delta.up   { background: rgba(16,185,129,.12); color: var(--green); }
+    .kpi-delta.down { background: rgba(244,63,94,.12);  color: var(--red); }
+
+    .kpi-sparkline { margin-top: 14px; height: 40px; }
+
+    /* ═══════════════════ SECTION CARD ═══════════════════ */
+    .section-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: .95rem; font-weight: 700; color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem;
+    }
+    .icon-gold   { background: rgba(240,180,41,.15); }
+    .icon-cyan   { background: rgba(34,211,238,.15); }
+    .icon-green  { background: rgba(16,185,129,.15); }
+    .icon-purple { background: rgba(168,85,247,.15); }
+    .icon-blue   { background: rgba(59,130,246,.15); }
+
+    .section-action {
+      font-size: .75rem; font-weight: 500; color: var(--gold);
+      background: rgba(240,180,41,.1); border: 1px solid rgba(240,180,41,.25);
+      padding: 5px 12px; border-radius: 6px; cursor: pointer; transition: all .2s;
+    }
+    .section-action:hover { background: rgba(240,180,41,.2); }
+
+    /* ═══════════════════ DOCUMENT INTELLIGENCE ═══════════════════ */
+    .upload-zone {
+      border: 2px dashed var(--border2);
+      border-radius: 12px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .25s;
+      background: rgba(240,180,41,.02);
+      margin-bottom: 16px;
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--gold); background: rgba(240,180,41,.06); }
+    .upload-zone .upload-icon { font-size: 2.2rem; margin-bottom: 10px; }
+    .upload-zone h3 { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+    .upload-zone p  { font-size: .75rem; color: var(--muted2); }
+
+    .doc-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+    .doc-item {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(240,180,41,.05);
+      border: 1px solid rgba(240,180,41,.15);
+      border-radius: 8px; padding: 10px 14px;
+      cursor: pointer; transition: all .2s;
+    }
+    .doc-item:hover { border-color: var(--gold); background: rgba(240,180,41,.1); }
+    .doc-item.active { border-color: var(--gold); background: rgba(240,180,41,.12); }
+    .doc-icon { font-size: 1.2rem; }
+    .doc-info { flex: 1; }
+    .doc-name { font-size: .8rem; font-weight: 600; color: var(--text); }
+    .doc-meta { font-size: .68rem; color: var(--muted); margin-top: 2px; }
+    .doc-status {
+      font-size: .65rem; font-weight: 600; padding: 2px 7px;
+      border-radius: 4px; background: rgba(16,185,129,.12); color: var(--green);
+    }
+
+    /* ── RAG Query ── */
+    .rag-query {
+      display: flex; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .rag-input {
+      flex: 1; background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 10px; padding: 10px 14px;
+      font-family: 'Inter', sans-serif; font-size: .82rem;
+      color: var(--text); outline: none;
+      transition: border-color .2s;
+    }
+    .rag-input:focus { border-color: var(--gold); }
+    .rag-input::placeholder { color: var(--muted); }
+    .rag-btn {
+      padding: 10px 18px; border: none; border-radius: 10px;
+      background: linear-gradient(135deg, var(--gold), #b45309);
+      color: var(--bg); font-family: 'Inter', sans-serif;
+      font-size: .82rem; font-weight: 700; cursor: pointer;
+      transition: opacity .2s; white-space: nowrap;
+    }
+    .rag-btn:hover { opacity: .85; }
+
+    .quick-queries { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .quick-q {
+      font-size: .7rem; padding: 5px 10px; border-radius: 6px;
+      background: var(--surface); border: 1px solid var(--border2);
+      color: var(--muted2); cursor: pointer; transition: all .2s;
+    }
+    .quick-q:hover { border-color: var(--gold); color: var(--gold); background: rgba(240,180,41,.08); }
+
+    .rag-answer {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-left: 3px solid var(--gold);
+      border-radius: 10px; padding: 16px;
+      min-height: 90px;
+    }
+    .rag-answer-label {
+      font-size: .65rem; font-weight: 700; color: var(--gold);
+      text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px;
+    }
+    .rag-answer-text {
+      font-size: .82rem; line-height: 1.6; color: var(--text);
+    }
+    .rag-answer-text .highlight {
+      background: rgba(240,180,41,.15); color: var(--gold2);
+      padding: 1px 4px; border-radius: 3px; font-weight: 600;
+    }
+    .rag-source {
+      display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap;
+    }
+    .source-chip {
+      font-size: .65rem; padding: 2px 8px; border-radius: 4px;
+      background: rgba(34,211,238,.1); color: var(--cyan);
+      border: 1px solid rgba(34,211,238,.2);
+    }
+
+    .typing-cursor {
+      display: inline-block; width: 8px; height: 13px;
+      background: var(--gold); border-radius: 2px;
+      animation: blink .75s step-end infinite; vertical-align: middle;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ═══════════════════ CHARTS ═══════════════════ */
+    .chart-wrap { position: relative; }
+    canvas { max-width: 100%; }
+
+    /* ═══════════════════ RISK GAUGE ═══════════════════ */
+    .risk-score-ring {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 10px 0 18px;
+    }
+    .ring-label { font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+    .ring-wrap { position: relative; width: 140px; height: 140px; }
+    .ring-wrap canvas { width: 140px !important; height: 140px !important; }
+    .ring-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .ring-val { font-size: 1.8rem; font-weight: 800; color: var(--gold); }
+    .ring-sub { font-size: .65rem; color: var(--muted); }
+
+    .risk-breakdown { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+    .risk-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .risk-row-label { font-size: .73rem; color: var(--muted2); width: 85px; flex-shrink: 0; }
+    .risk-bar-bg { flex: 1; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+    .risk-bar-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+    .risk-row-val { font-size: .73rem; font-weight: 600; width: 36px; text-align: right; }
+
+    /* ═══════════════════ PORTFOLIO TABLE ═══════════════════ */
+    .port-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    .port-table th {
+      text-align: left; padding: 8px 12px;
+      font-size: .67rem; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .port-table td {
+      padding: 11px 12px; border-bottom: 1px solid rgba(20,45,82,.5);
+      vertical-align: middle;
+    }
+    .port-table tr:last-child td { border-bottom: none; }
+    .port-table tr:hover td { background: rgba(240,180,41,.03); }
+
+    .ticker { font-weight: 700; color: var(--cyan); font-family: 'JetBrains Mono', monospace; font-size: .78rem; }
+    .pos-name { font-size: .75rem; color: var(--muted2); margin-top: 2px; }
+    .price { font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+    .change-up   { color: var(--green); font-weight: 600; }
+    .change-down { color: var(--red);   font-weight: 600; }
+
+    .risk-badge {
+      display: inline-block; padding: 3px 9px; border-radius: 5px;
+      font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+    }
+    .risk-low    { background: rgba(16,185,129,.12); color: var(--green); }
+    .risk-medium { background: rgba(240,180,41,.12); color: var(--gold); }
+    .risk-high   { background: rgba(244,63,94,.12);  color: var(--red); }
+
+    .weight-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .w-bar { width: 60px; height: 5px; border-radius: 3px; background: var(--border); overflow: hidden; }
+    .w-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--cyan), var(--blue)); }
+    .w-pct { font-size: .72rem; color: var(--muted2); }
+
+    /* ═══════════════════ SENTIMENT FEED ═══════════════════ */
+    .sentiment-feed { display: flex; flex-direction: column; gap: 10px; }
+    .sentiment-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 13px 15px;
+      transition: border-color .2s; cursor: pointer;
+    }
+    .sentiment-item:hover { border-color: var(--border2); }
+    .si-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+    .si-title  { font-size: .78rem; font-weight: 600; color: var(--text); line-height: 1.35; }
+    .si-score  {
+      flex-shrink: 0; font-size: .7rem; font-weight: 700;
+      padding: 3px 9px; border-radius: 5px;
+    }
+    .si-bull { background: rgba(16,185,129,.12); color: var(--green); }
+    .si-bear { background: rgba(244,63,94,.12);  color: var(--red); }
+    .si-neut { background: rgba(240,180,41,.12); color: var(--gold); }
+    .si-meta { display: flex; align-items: center; gap: 8px; }
+    .si-src  { font-size: .67rem; color: var(--muted); }
+    .si-ticker { font-size: .67rem; font-family: 'JetBrains Mono', monospace; color: var(--cyan); background: rgba(34,211,238,.08); padding: 1px 6px; border-radius: 3px; }
+
+    /* ═══════════════════ VAR ANALYSIS ═══════════════════ */
+    .var-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .var-stat {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px;
+    }
+    .var-stat-label { font-size: .65rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
+    .var-stat-val   { font-size: 1.1rem; font-weight: 700; }
+    .var-stat-val.neg { color: var(--red); }
+    .var-stat-val.pos { color: var(--green); }
+
+    /* ═══════════════════ LOADING ANIMATION ═══════════════════ */
+    @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+    .loading { animation: pulse 1.4s ease-in-out infinite; }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(16px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .45s ease forwards; }
+
+    /* ═══════════════════ ALERT STRIP ═══════════════════ */
+    .alert-strip {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(244,63,94,.08);
+      border: 1px solid rgba(244,63,94,.25);
+      border-radius: 10px; padding: 12px 16px;
+      margin-bottom: 18px;
+    }
+    .alert-icon { font-size: 1.1rem; }
+    .alert-text { font-size: .78rem; color: var(--text); flex: 1; }
+    .alert-text strong { color: var(--red); }
+    .alert-dismiss {
+      font-size: .7rem; color: var(--muted); cursor: pointer;
+      padding: 3px 8px; border-radius: 4px;
+      border: 1px solid var(--border); background: transparent;
+      font-family: 'Inter', sans-serif; transition: all .2s;
+    }
+    .alert-dismiss:hover { color: var(--text); border-color: var(--border2); }
+
+    /* ═══════════════════ TABS ═══════════════════ */
+    .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .tab {
+      padding: 7px 14px; border-radius: 7px; border: none;
+      background: transparent; color: var(--muted2);
+      font-family: 'Inter', sans-serif; font-size: .78rem; font-weight: 500;
+      cursor: pointer; transition: all .2s;
+    }
+    .tab.active { background: rgba(240,180,41,.12); color: var(--gold); }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    /* ═══════════════════ SCROLLBAR ═══════════════════ */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* ═══════════════════ FOOTER ═══════════════════ */
+    footer {
+      text-align: center; padding: 28px 40px;
+      border-top: 1px solid var(--border);
+      font-size: .72rem; color: var(--muted);
+    }
+    footer span { color: var(--gold); }
+
+    @media (max-width: 900px) {
+      .grid-4 { grid-template-columns: 1fr 1fr; }
+      .grid-doc, .grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ════════════ HEADER ════════════ -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">W</div>
+      <div class="logo-text">
+        <div class="logo-name">WealthLens</div>
+        <div class="logo-sub">Financial Intelligence Platform</div>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-btn active">Dashboard</button>
+      <button class="nav-btn">Documents</button>
+      <button class="nav-btn">Risk Engine</button>
+      <button class="nav-btn">Portfolio</button>
+      <button class="nav-btn">Reports</button>
+    </nav>
+    <div class="header-right">
+      <div class="badge badge-live">● LIVE</div>
+      <div class="user-av">HD</div>
+    </div>
+  </header>
+
+  <!-- ════════════ MAIN ════════════ -->
+  <main>
+
+    <!-- Title -->
+    <div class="page-title fade-up">
+      <h1>Portfolio Intelligence Dashboard</h1>
+      <p>AI-powered financial document analysis &amp; real-time risk monitoring — BNY Asset Management</p>
+    </div>
+
+    <!-- Risk Alert -->
+    <div class="alert-strip fade-up" id="alertStrip">
+      <div class="alert-icon">⚠️</div>
+      <div class="alert-text"><strong>Risk Alert:</strong> Portfolio VaR (95%) exceeded threshold on MSFT position — document flagged for review. LangChain RAG extraction in progress.</div>
+      <button class="alert-dismiss" onclick="document.getElementById('alertStrip').style.display='none'">Dismiss</button>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid-4 mb-28 fade-up">
+      <div class="kpi-card gold">
+        <div class="kpi-label">Assets Under Management</div>
+        <div class="kpi-value" id="aumVal">$2.47B</div>
+        <span class="kpi-delta up">▲ 3.2% QTD</span>
+        <div class="kpi-sparkline"><canvas id="sparkAUM"></canvas></div>
+      </div>
+      <div class="kpi-card cyan">
+        <div class="kpi-label">Portfolio Risk Score</div>
+        <div class="kpi-value" id="riskVal">6.8</div>
+        <span class="kpi-delta down">▼ Moderate-High</span>
+        <div class="kpi-sparkline"><canvas id="sparkRisk"></canvas></div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">YTD Returns</div>
+        <div class="kpi-value">+11.4%</div>
+        <span class="kpi-delta up">▲ vs 8.1% benchmark</span>
+        <div class="kpi-sparkline"><canvas id="sparkReturn"></canvas></div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Portfolio VaR (95%)</div>
+        <div class="kpi-value">-$18.3M</div>
+        <span class="kpi-delta down">▼ 1-Day Horizon</span>
+        <div class="kpi-sparkline"><canvas id="sparkVaR"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Document Intelligence + Risk Score -->
+    <div class="grid-doc mb-18 fade-up">
+
+      <!-- Document Intelligence -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="section-icon icon-gold">📄</div>
+            Document Intelligence Engine
+          </div>
+          <button class="section-action">+ Upload</button>
+        </div>
+
+        <!-- Document List -->
+        <div class="doc-list">
+          <div class="doc-item active" onclick="selectDoc(this, 0)">
+            <div class="doc-icon">📊</div>
+            <div class="doc-info">
+              <div class="doc-name">BNY_Q1_2026_EarningsReport.pdf</div>
+              <div class="doc-meta">42 pages · PDF · Uploaded Apr 7, 2026</div>
+            </div>
+            <div class="doc-status">Indexed</div>
+          </div>
+          <div class="doc-item" onclick="selectDoc(this, 1)">
+            <div class="doc-icon">📋</div>
+            <div class="doc-info">
+              <div class="doc-name">MSFT_10K_FY2025_Filing.pdf</div>
+              <div class="doc-meta">198 pages · PDF · Uploaded Apr 5, 2026</div>
+            </div>
+            <div class="doc-status">Indexed</div>
+          </div>
+          <div class="doc-item" onclick="selectDoc(this, 2)">
+            <div class="doc-icon">🏦</div>
+            <div class="doc-info">
+              <div class="doc-name">FederalReserve_PolicyUpdate_Mar2026.pdf</div>
+              <div class="doc-meta">15 pages · PDF · Uploaded Apr 3, 2026</div>
+            </div>
+            <div class="doc-status">Indexed</div>
+          </div>
+          <div class="doc-item" onclick="selectDoc(this, 3)">
+            <div class="doc-icon">📈</div>
+            <div class="doc-info">
+              <div class="doc-name">PortfolioRiskAssessment_Apr2026.xlsx</div>
+              <div class="doc-meta">12 sheets · Excel · Uploaded Apr 8, 2026</div>
+            </div>
+            <div class="doc-status">Indexed</div>
+          </div>
+        </div>
+
+        <!-- RAG Query Interface -->
+        <div style="margin-top: 20px;">
+          <div style="font-size:.72rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px;">
+            RAG Query Interface <span style="color:var(--gold);">— LangChain + GPT-4 Turbo</span>
+          </div>
+          <div class="quick-queries">
+            <div class="quick-q" onclick="runQuery(this, 0)">What is the Q1 EPS?</div>
+            <div class="quick-q" onclick="runQuery(this, 1)">Key risk factors?</div>
+            <div class="quick-q" onclick="runQuery(this, 2)">Revenue breakdown by segment</div>
+            <div class="quick-q" onclick="runQuery(this, 3)">Interest rate sensitivity</div>
+            <div class="quick-q" onclick="runQuery(this, 4)">Liquidity position</div>
+          </div>
+          <div class="rag-query">
+            <input type="text" class="rag-input" id="ragInput" placeholder="Ask anything about your indexed documents..." />
+            <button class="rag-btn" onclick="askRAG()">Ask AI ✦</button>
+          </div>
+          <div class="rag-answer" id="ragAnswer">
+            <div class="rag-answer-label">AI Response — Semantic Search</div>
+            <div class="rag-answer-text" id="ragText" style="color:var(--muted2); font-style:italic;">
+              Select a document and ask a question, or click a quick query above to see the RAG engine in action.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Score Panel -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="section-icon icon-cyan">🎯</div>
+            Risk Analytics
+          </div>
+        </div>
+
+        <div class="risk-score-ring">
+          <div class="ring-label">Portfolio Risk Score</div>
+          <div class="ring-wrap">
+            <canvas id="riskRing"></canvas>
+            <div class="ring-center">
+              <div class="ring-val">6.8</div>
+              <div class="ring-sub">/ 10.0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="risk-breakdown">
+          <div class="risk-row">
+            <div class="risk-row-label">Market Risk</div>
+            <div class="risk-bar-bg"><div class="risk-bar-fill" style="width:78%; background:linear-gradient(90deg,#f43f5e,#fb923c);"></div></div>
+            <div class="risk-row-val" style="color:var(--red);">7.8</div>
+          </div>
+          <div class="risk-row">
+            <div class="risk-row-label">Credit Risk</div>
+            <div class="risk-bar-bg"><div class="risk-bar-fill" style="width:52%; background:linear-gradient(90deg,#f0b429,#fcd34d);"></div></div>
+            <div class="risk-row-val" style="color:var(--gold);">5.2</div>
+          </div>
+          <div class="risk-row">
+            <div class="risk-row-label">Liquidity Risk</div>
+            <div class="risk-bar-bg"><div class="risk-bar-fill" style="width:38%; background:linear-gradient(90deg,#10b981,#34d399);"></div></div>
+            <div class="risk-row-val" style="color:var(--green);">3.8</div>
+          </div>
+          <div class="risk-row">
+            <div class="risk-row-label">Operational</div>
+            <div class="risk-bar-bg"><div class="risk-bar-fill" style="width:45%; background:linear-gradient(90deg,#f0b429,#fcd34d);"></div></div>
+            <div class="risk-row-val" style="color:var(--gold);">4.5</div>
+          </div>
+          <div class="risk-row">
+            <div class="risk-row-label">Concentration</div>
+            <div class="risk-bar-bg"><div class="risk-bar-fill" style="width:70%; background:linear-gradient(90deg,#f43f5e,#fb923c);"></div></div>
+            <div class="risk-row-val" style="color:var(--red);">7.0</div>
+          </div>
+        </div>
+
+        <!-- VaR Stats -->
+        <div style="margin-top: 20px;">
+          <div style="font-size:.72rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px;">Value at Risk Analysis</div>
+          <div class="var-stats">
+            <div class="var-stat">
+              <div class="var-stat-label">VaR 95% (1-Day)</div>
+              <div class="var-stat-val neg">-$18.3M</div>
+            </div>
+            <div class="var-stat">
+              <div class="var-stat-label">VaR 99% (1-Day)</div>
+              <div class="var-stat-val neg">-$26.1M</div>
+            </div>
+            <div class="var-stat">
+              <div class="var-stat-label">Expected Shortfall</div>
+              <div class="var-stat-val neg">-$32.7M</div>
+            </div>
+            <div class="var-stat">
+              <div class="var-stat-label">Sharpe Ratio</div>
+              <div class="var-stat-val pos">1.42</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid-2 mb-18 fade-up">
+
+      <!-- Allocation Chart -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="section-icon icon-purple">📊</div>
+            Asset Allocation
+          </div>
+          <div class="tabs">
+            <button class="tab active">By Sector</button>
+            <button class="tab">By Asset</button>
+            <button class="tab">By Region</button>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:center;">
+          <div class="chart-wrap" style="height:220px;">
+            <canvas id="allocChart"></canvas>
+          </div>
+          <div id="allocLegend" style="display:flex; flex-direction:column; gap:9px;"></div>
+        </div>
+      </div>
+
+      <!-- Performance Chart -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="section-icon icon-green">📈</div>
+            Portfolio Performance
+          </div>
+          <div class="tabs">
+            <button class="tab active">1M</button>
+            <button class="tab">3M</button>
+            <button class="tab">YTD</button>
+            <button class="tab">1Y</button>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:220px;">
+          <canvas id="perfChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Portfolio Table + Sentiment -->
+    <div class="grid-3 mb-18 fade-up" style="grid-template-columns: 1.8fr 1fr;">
+
+      <!-- Holdings Table -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="section-icon icon-blue">💼</div>
+            Portfolio Holdings
+          </div>
+          <button class="section-action">Export CSV</button>
+        </div>
+        <table class="port-table">
+          <thead>
+            <tr>
+              <th>Security</th>
+              <th>Price</th>
+              <th>Change</th>
+              <th>Weight</th>
+              <th>Risk</th>
+              <th>Signal</th>
+            </tr>
+          </thead>
+          <tbody id="holdingsBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Sentiment Feed -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="section-icon icon-gold">📰</div>
+            Market Sentiment
+          </div>
+        </div>
+        <div class="sentiment-feed" id="sentimentFeed"></div>
+      </div>
+    </div>
+
+    <!-- Risk Radar -->
+    <div class="grid-2 fade-up mb-18">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="section-icon icon-cyan">🕸️</div>
+            Multi-Factor Risk Radar
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:260px;">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Volatility Distribution -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="section-icon icon-purple">📉</div>
+            Return Distribution (Monte Carlo)
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:260px;">
+          <canvas id="mcChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    Built with <span>LangChain · RAG · Python FastAPI · React</span> — Inspired by BNY Asset & Wealth Management workflows
+  </footer>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   DATA
+════════════════════════════════════════════ */
+const RAG_ANSWERS = [
+  {
+    doc: 0,
+    q: "What is the Q1 2026 earnings per share?",
+    a: `BNY Mellon reported Q1 2026 diluted EPS of <span class="highlight">$1.73</span>, representing a <span class="highlight">+8.1% YoY</span> increase driven by higher fee revenue and net interest income growth. Investment Services revenue was $3.8B, up 5.2% from Q1 2025. The board declared a quarterly dividend of <span class="highlight">$0.47 per share</span>.`,
+    sources: ["BNY_Q1_2026_EarningsReport.pdf · p.4", "BNY_Q1_2026_EarningsReport.pdf · p.12"]
+  },
+  {
+    doc: 1,
+    q: "What are the key risk factors disclosed by MSFT?",
+    a: `Microsoft's FY2025 10-K discloses <span class="highlight">3 primary risk categories</span>: (1) <strong>Cybersecurity</strong> — significant exposure from AI infrastructure expansion; (2) <strong>Regulatory</strong> — EU Digital Markets Act compliance costs estimated at <span class="highlight">$1.2B</span>; (3) <strong>Market concentration</strong> — Azure contributing <span class="highlight">43%</span> of total revenue creates single-segment dependency.`,
+    sources: ["MSFT_10K_FY2025_Filing.pdf · p.18", "MSFT_10K_FY2025_Filing.pdf · p.32"]
+  },
+  {
+    doc: 0,
+    q: "What is the revenue breakdown by business segment?",
+    a: `Q1 2026 revenue breakdown: <span class="highlight">Investment Services $3.8B (61%)</span>, Investment & Wealth Management <span class="highlight">$1.9B (30%)</span>, and Other/Corporate <span class="highlight">$0.56B (9%)</span>. Total revenue of <span class="highlight">$6.26B</span> exceeded consensus estimate of $6.11B by 2.5%.`,
+    sources: ["BNY_Q1_2026_EarningsReport.pdf · p.7", "BNY_Q1_2026_EarningsReport.pdf · p.9"]
+  },
+  {
+    doc: 2,
+    q: "What is the Federal Reserve's interest rate sensitivity guidance?",
+    a: `The March 2026 Fed policy update maintains the fed funds rate at <span class="highlight">4.25–4.50%</span>. Guidance indicates <span class="highlight">2 rate cuts expected in H2 2026</span>, contingent on CPI falling below 2.8%. Duration-sensitive fixed income portfolios face estimated NAV impact of <span class="highlight">-1.4% per 100bps parallel shift</span>.`,
+    sources: ["FederalReserve_PolicyUpdate_Mar2026.pdf · p.3", "FederalReserve_PolicyUpdate_Mar2026.pdf · p.11"]
+  },
+  {
+    doc: 0,
+    q: "What is the current liquidity position?",
+    a: `As of Q1 2026, BNY Mellon maintains a Liquidity Coverage Ratio (LCR) of <span class="highlight">132%</span>, above the regulatory minimum of 100%. High-quality liquid assets total <span class="highlight">$148.6B</span>. Net Stable Funding Ratio (NSFR) stands at <span class="highlight">119%</span>. Cash and liquid equivalents: $22.4B.`,
+    sources: ["BNY_Q1_2026_EarningsReport.pdf · p.21", "BNY_Q1_2026_EarningsReport.pdf · p.23"]
+  }
+];
+
+const HOLDINGS = [
+  { ticker:"MSFT", name:"Microsoft Corp",       price:"$412.80", change:"+1.24%",  up:true,  weight:14.2, risk:"high",   signal:"Hold" },
+  { ticker:"BLK",  name:"BlackRock Inc",         price:"$891.50", change:"+0.88%",  up:true,  weight:11.8, risk:"medium", signal:"Buy" },
+  { ticker:"JPM",  name:"JPMorgan Chase",        price:"$205.30", change:"-0.42%",  up:false, weight:10.5, risk:"medium", signal:"Buy" },
+  { ticker:"GS",   name:"Goldman Sachs",         price:"$487.90", change:"+2.11%",  up:true,  weight: 9.3, risk:"high",   signal:"Hold" },
+  { ticker:"TLT",  name:"iShares 20Y Treasury",  price:"$92.14",  change:"-0.73%",  up:false, weight: 8.7, risk:"low",    signal:"Buy" },
+  { ticker:"VTI",  name:"Vanguard Total Market", price:"$239.45", change:"+0.54%",  up:true,  weight: 8.2, risk:"low",    signal:"Hold" },
+  { ticker:"NVDA", name:"NVIDIA Corp",            price:"$892.20", change:"+3.40%",  up:true,  weight: 7.4, risk:"high",   signal:"Sell" },
+  { ticker:"GLD",  name:"SPDR Gold Shares",      price:"$215.80", change:"+0.12%",  up:true,  weight: 6.1, risk:"low",    signal:"Hold" },
+];
+
+const SENTIMENT = [
+  { title:"BNY Mellon beats Q1 estimates — EPS $1.73 vs $1.65 expected", ticker:"BK", score:"Bullish", cls:"si-bull", src:"Reuters · 2h ago" },
+  { title:"Fed signals two rate cuts in H2 2026 — bond markets rally", ticker:"TLT", score:"Bullish", cls:"si-bull", src:"Bloomberg · 4h ago" },
+  { title:"MSFT Azure growth slows to 28% — analysts revise targets", ticker:"MSFT", score:"Bearish", cls:"si-bear", src:"WSJ · 6h ago" },
+  { title:"NVIDIA data center demand remains robust despite supply chain concerns", ticker:"NVDA", score:"Neutral", cls:"si-neut", src:"FT · 8h ago" },
+  { title:"Goldman Sachs upgrades GS to Buy — M&A pipeline accelerating", ticker:"GS", score:"Bullish", cls:"si-bull", src:"Barron's · 12h ago" },
+];
+
+/* ════════════════════════════════════════════
+   SPARKLINES
+════════════════════════════════════════════ */
+function makeSparkline(id, data, color, fill=false) {
+  const ctx = document.getElementById(id)?.getContext('2d');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map((_,i) => i),
+      datasets: [{ data, borderColor: color, borderWidth: 2,
+        pointRadius: 0, tension: 0.4,
+        fill: fill, backgroundColor: fill ? color.replace(')',', 0.15)').replace('rgb','rgba') : 'transparent'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{ display:false }, tooltip:{ enabled:false } },
+      scales: { x:{ display:false }, y:{ display:false } },
+      animation: { duration: 1000 }
+    }
+  });
+}
+
+makeSparkline('sparkAUM',    [2.1,2.15,2.22,2.18,2.3,2.35,2.41,2.47], '#f0b429', true);
+makeSparkline('sparkRisk',   [5.2,5.8,6.1,6.4,6.2,6.5,6.9,6.8], '#22d3ee');
+makeSparkline('sparkReturn', [3,4.5,5.8,6.2,7.1,8.8,10.2,11.4], '#10b981', true);
+makeSparkline('sparkVaR',    [-12,-13.5,-14.2,-15.8,-16.1,-17.2,-17.9,-18.3], '#f43f5e');
+
+/* ════════════════════════════════════════════
+   RISK RING
+════════════════════════════════════════════ */
+(function(){
+  const ctx = document.getElementById('riskRing')?.getContext('2d');
+  if (!ctx) return;
+  const val = 6.8;
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [val, 10 - val],
+        backgroundColor: ['#f0b429', 'rgba(20,45,82,.6)'],
+        borderWidth: 0, borderRadius: 4
+      }]
+    },
+    options: {
+      cutout: '72%', responsive: false,
+      plugins: { legend:{ display:false }, tooltip:{ enabled:false } },
+      animation: { animateRotate: true, duration: 1200 }
+    }
+  });
+})();
+
+/* ════════════════════════════════════════════
+   ALLOCATION CHART
+════════════════════════════════════════════ */
+(function(){
+  const ctx = document.getElementById('allocChart')?.getContext('2d');
+  if (!ctx) return;
+  const sectors = [
+    { label:'Technology',   pct:26.6, color:'#22d3ee' },
+    { label:'Financials',   pct:21.1, color:'#f0b429' },
+    { label:'Fixed Income', pct:14.8, color:'#3b82f6' },
+    { label:'Equities ETF', pct:8.2,  color:'#10b981' },
+    { label:'Commodities',  pct:6.1,  color:'#a855f7' },
+    { label:'Other',        pct:23.2, color:'#475569' },
+  ];
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: sectors.map(s=>s.label),
+      datasets: [{
+        data: sectors.map(s=>s.pct),
+        backgroundColor: sectors.map(s=>s.color),
+        borderWidth: 2, borderColor: '#0b1f3a',
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      cutout: '60%', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}%` }
+        }
+      }
+    }
+  });
+  // custom legend
+  const leg = document.getElementById('allocLegend');
+  sectors.forEach(s => {
+    leg.innerHTML += `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:10px;height:10px;border-radius:2px;background:${s.color};flex-shrink:0;"></div>
+        <div style="flex:1;font-size:.73rem;color:var(--muted2);">${s.label}</div>
+        <div style="font-size:.73rem;font-weight:600;color:var(--text);">${s.pct}%</div>
+      </div>`;
+  });
+})();
+
+/* ════════════════════════════════════════════
+   PERFORMANCE CHART
+════════════════════════════════════════════ */
+(function(){
+  const ctx = document.getElementById('perfChart')?.getContext('2d');
+  if (!ctx) return;
+  const labels = ['Mar 8','Mar 12','Mar 15','Mar 19','Mar 22','Mar 26','Mar 29','Apr 1','Apr 5','Apr 8'];
+  const port  = [100, 101.2, 100.8, 102.3, 103.1, 102.7, 104.1, 105.8, 107.2, 111.4];
+  const bench = [100, 100.5, 100.2, 101.1, 101.8, 101.3, 102.5, 103.8, 104.6, 108.1];
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label:'Portfolio', data: port, borderColor:'#f0b429', borderWidth:2.5,
+          pointRadius:0, tension:.4,
+          fill:true, backgroundColor:'rgba(240,180,41,.08)' },
+        { label:'Benchmark', data: bench, borderColor:'#475569', borderWidth:1.5,
+          pointRadius:0, tension:.4, borderDash:[5,4],
+          fill:false }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend: { display:true, labels:{ color:'#94a3b8', font:{size:11}, boxWidth:12, padding:16 } },
+        tooltip: { mode:'index', intersect:false }
+      },
+      scales: {
+        x: { grid:{ color:'rgba(20,45,82,.8)' }, ticks:{ color:'#64748b', font:{size:10} } },
+        y: { grid:{ color:'rgba(20,45,82,.8)' }, ticks:{ color:'#64748b', font:{size:10},
+          callback: v => v.toFixed(0) + '%' } }
+      },
+      interaction: { mode:'nearest', axis:'x', intersect:false }
+    }
+  });
+})();
+
+/* ════════════════════════════════════════════
+   RADAR CHART
+════════════════════════════════════════════ */
+(function(){
+  const ctx = document.getElementById('radarChart')?.getContext('2d');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['Market Risk','Credit Risk','Liquidity','Operational','ESG Score','Concentration','Volatility'],
+      datasets: [
+        { label:'Current Portfolio', data:[7.8,5.2,3.8,4.5,6.2,7.0,6.5],
+          backgroundColor:'rgba(240,180,41,.15)', borderColor:'#f0b429',
+          borderWidth:2, pointBackgroundColor:'#f0b429', pointRadius:4 },
+        { label:'Benchmark', data:[5,4,3,4,5,4,5],
+          backgroundColor:'rgba(34,211,238,.07)', borderColor:'rgba(34,211,238,.5)',
+          borderWidth:1.5, pointBackgroundColor:'rgba(34,211,238,.5)', pointRadius:3,
+          borderDash:[4,4] }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{ labels:{ color:'#94a3b8', font:{size:11} } } },
+      scales: {
+        r: {
+          min:0, max:10,
+          angleLines:{ color:'rgba(20,45,82,.8)' },
+          grid:{ color:'rgba(20,45,82,.8)' },
+          pointLabels:{ color:'#94a3b8', font:{size:10.5} },
+          ticks:{ display:false }
+        }
+      }
+    }
+  });
+})();
+
+/* ════════════════════════════════════════════
+   MONTE CARLO CHART
+════════════════════════════════════════════ */
+(function(){
+  const ctx = document.getElementById('mcChart')?.getContext('2d');
+  if (!ctx) return;
+  // simulate normal distribution
+  const bins = [];
+  const counts = [];
+  const colors = [];
+  for (let r = -12; r <= 12; r += 1) {
+    bins.push(`${r > 0 ? '+' : ''}${r}%`);
+    const z = r / 3.2;
+    const h = Math.round(1000 * Math.exp(-.5*z*z));
+    counts.push(h);
+    colors.push(r < -4 ? 'rgba(244,63,94,.7)' : r > 4 ? 'rgba(16,185,129,.7)' : 'rgba(240,180,41,.65)');
+  }
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: bins,
+      datasets: [{ label:'Simulations', data:counts, backgroundColor:colors, borderWidth:0, borderRadius:2 }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{ display:false },
+        tooltip: { callbacks:{ label: c=>' '+c.parsed.y+' paths' } }
+      },
+      scales: {
+        x: { grid:{display:false}, ticks:{color:'#64748b',font:{size:9.5},maxRotation:0} },
+        y: { grid:{color:'rgba(20,45,82,.8)'}, ticks:{display:false} }
+      }
+    }
+  });
+})();
+
+/* ════════════════════════════════════════════
+   HOLDINGS TABLE
+════════════════════════════════════════════ */
+(function(){
+  const tbody = document.getElementById('holdingsBody');
+  HOLDINGS.forEach(h => {
+    const riskClass = h.risk === 'high' ? 'risk-high' : h.risk === 'medium' ? 'risk-medium' : 'risk-low';
+    const sigColor  = h.signal === 'Buy' ? 'var(--green)' : h.signal === 'Sell' ? 'var(--red)' : 'var(--gold)';
+    tbody.innerHTML += `
+      <tr>
+        <td><div class="ticker">${h.ticker}</div><div class="pos-name">${h.name}</div></td>
+        <td><span class="price">${h.price}</span></td>
+        <td class="${h.up ? 'change-up' : 'change-down'}">${h.change}</td>
+        <td>
+          <div class="weight-bar-wrap">
+            <div class="w-bar"><div class="w-fill" style="width:${h.weight*5}%;"></div></div>
+            <div class="w-pct">${h.weight}%</div>
+          </div>
+        </td>
+        <td><span class="risk-badge ${riskClass}">${h.risk}</span></td>
+        <td><span style="font-size:.75rem;font-weight:700;color:${sigColor};">${h.signal}</span></td>
+      </tr>`;
+  });
+})();
+
+/* ════════════════════════════════════════════
+   SENTIMENT FEED
+════════════════════════════════════════════ */
+(function(){
+  const feed = document.getElementById('sentimentFeed');
+  SENTIMENT.forEach(s => {
+    feed.innerHTML += `
+      <div class="sentiment-item">
+        <div class="si-header">
+          <div class="si-title">${s.title}</div>
+          <div class="si-score ${s.cls}">${s.score}</div>
+        </div>
+        <div class="si-meta">
+          <span class="si-src">${s.src}</span>
+          <span class="si-ticker">${s.ticker}</span>
+        </div>
+      </div>`;
+  });
+})();
+
+/* ════════════════════════════════════════════
+   RAG ENGINE SIMULATION
+════════════════════════════════════════════ */
+let currentDoc = 0;
+
+function selectDoc(el, idx) {
+  document.querySelectorAll('.doc-item').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+  currentDoc = idx;
+}
+
+function runQuery(el, idx) {
+  const answer = RAG_ANSWERS[idx];
+  document.getElementById('ragInput').value = el.textContent;
+  currentDoc = answer.doc;
+  document.querySelectorAll('.doc-item').forEach((d,i) => d.classList.toggle('active', i === answer.doc));
+  typeAnswer(answer);
+}
+
+function askRAG() {
+  const q = document.getElementById('ragInput').value.trim();
+  if (!q) return;
+  const lower = q.toLowerCase();
+  let answer = RAG_ANSWERS.find(a => {
+    const kw = a.q.toLowerCase().split(' ');
+    return kw.some(k => k.length > 4 && lower.includes(k));
+  });
+  if (!answer) answer = {
+    a: `Based on semantic search across <span class="highlight">${HOLDINGS.length + 3} indexed documents</span>, the query "<em>${q}</em>" returned relevant context from portfolio filings. The RAG engine identified key passages across financial statements with <span class="highlight">87% confidence</span>. Review the source documents for full context.`,
+    sources: ["RAG Index · semantic similarity 0.87"]
+  };
+  typeAnswer(answer);
+}
+
+function typeAnswer(answer) {
+  const label  = document.querySelector('.rag-answer-label');
+  const textEl = document.getElementById('ragText');
+
+  label.innerHTML = 'AI Response — Retrieving Context <span class="loading">...</span>';
+  textEl.innerHTML = '<span class="typing-cursor"></span>';
+
+  setTimeout(() => {
+    label.innerHTML = 'AI Response — Semantic Search Complete ✓';
+    textEl.innerHTML = answer.a;
+    if (answer.sources) {
+      textEl.innerHTML += `<div class="rag-source">${answer.sources.map(s=>`<span class="source-chip">📎 ${s}</span>`).join('')}</div>`;
+    }
+  }, 900);
+}
+
+/* Nav tab switching */
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+/* Tab switchers */
+document.querySelectorAll('.tabs .tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    tab.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+});
+
+/* Upload zone drag */
+document.querySelectorAll('.upload-zone').forEach(z => {
+  ['dragover','dragleave'].forEach(e => z.addEventListener(e, ev => {
+    ev.preventDefault();
+    z.classList.toggle('drag', e === 'dragover');
+  }));
+});
+</script>
+</body>
+</html>
