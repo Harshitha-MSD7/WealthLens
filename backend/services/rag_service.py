@@ -119,34 +119,44 @@ class RAGService:
 
     def query(self, question: str, doc_filter: Optional[str] = None) -> dict:
         """Run a RAG query. Returns answer + source citations."""
-        vs = self._get_vectorstore()
+        try:
+            vs = self._get_vectorstore()
+            count = vs._collection.count()
+        except Exception:
+            count = 0
 
-        # Check collection has documents
-        if vs._collection.count() == 0:
+        if count == 0:
             return {
-                "answer": "No documents have been indexed yet. Please upload a PDF first.",
+                "answer": "No documents have been indexed yet. Please upload a PDF using the '+ Upload' button, then ask your question.",
                 "sources": [],
                 "confidence": 0.0,
             }
 
-        chain = _build_chain(vs)
-        result = chain.invoke({"query": question})
+        try:
+            chain = _build_chain(vs)
+            result = chain.invoke({"query": question})
 
-        sources = []
-        seen = set()
-        for doc in result.get("source_documents", []):
-            src = doc.metadata.get("source_file", "Unknown")
-            page = doc.metadata.get("page", "")
-            label = f"{src} · p.{page + 1}" if page != "" else src
-            if label not in seen:
-                seen.add(label)
-                sources.append(label)
+            sources = []
+            seen = set()
+            for doc in result.get("source_documents", []):
+                src = doc.metadata.get("source_file", "Unknown")
+                page = doc.metadata.get("page", "")
+                label = f"{src} · p.{page + 1}" if page != "" else src
+                if label not in seen:
+                    seen.add(label)
+                    sources.append(label)
 
-        return {
-            "answer": result["result"],
-            "sources": sources[:4],
-            "confidence": round(min(0.95, 0.65 + len(sources) * 0.07), 2),
-        }
+            return {
+                "answer": result["result"],
+                "sources": sources[:4],
+                "confidence": round(min(0.95, 0.65 + len(sources) * 0.07), 2),
+            }
+        except Exception as e:
+            return {
+                "answer": f"Query failed: {str(e)}",
+                "sources": [],
+                "confidence": 0.0,
+            }
 
     def list_documents(self) -> list[dict]:
         return list(_doc_registry.values())
